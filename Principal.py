@@ -123,7 +123,7 @@ def parar_suspense(channel):
 
 def exibir_menu_inicial():
     print("\n" + "#" * 40)
-    print("#          SHOW DO MILIONARIO          #")
+    print("#          SHOW DO MILHÃO          #")
     print("#" * 40)
     print("1 - Jogar")
     print("2 - Instruções")
@@ -1341,6 +1341,8 @@ def criar_perguntas_quimica():
         },
     ]
     return criar_perguntas_por_lista(dados)
+
+# Perguntas em branco para edição posterior, e usado em testes, decidi manter, mas pode ser removido
 
 
 def criar_perguntas_em_branco():
