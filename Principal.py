@@ -694,13 +694,13 @@ def criar_perguntas_quimica():
         {"texto": "Qual combustível biodegradável tem o melhor custo financeiro?", "opcoes": ["biodiesel", "Etanol", "Biometano", "Carvão mineral"], "resposta": "B"},
         {"texto": "Escolha a alternativa onde tenha apenas combustíveis biodegradáveis.", "opcoes": ["Biogás, biodiesel, diesel verde, carvão mineral", "etanol, petróleo, carvão mineral, biogás", "etanol, biogás, biodiesel, diesel verde", "Gás natural, petróleo, diesel verde, etanol"], "resposta": "C"},
         {"texto": "Qual é o biocombustível mais utilizado no Brasil?", "opcoes": ["Etanol", "Biodiesil", "diesil verde", "carvão natural"], "resposta": "A"},
-        {"texto": "Qual destes materiais pode ser reciclável?", "opcoes": ["Espelho", "guardanapo", "Caixa de papelão", "Caixa de pizza"], "resposta": "B"},
+        {"texto": "Qual destes materiais pode ser reciclável?", "opcoes": ["Espelho", "guardanapo", "Caixa de papelão", "Caixa de pizza"], "resposta": "C"},
         {"texto": "Qual é a sequencia certa para a reciclagem?", "opcoes": ["Coleta, transformação, realocação, triagem", "Coleta, triagem, transformação, realocação", "coleta, realocação, triagem, transformação", "coleta, triagem, realocação, transformação"], "resposta": "B"},
         {"texto": "Qual das cores abaixo é da lixeira de plástico?", "opcoes": ["Amarelo", "Verde", "Azul", "Vermelho"], "resposta": "D"},
         {"texto": "Quais são as cores principais das lixeiras para a reciclagem?", "opcoes": ["Vermelha, preto, laranja, marrom e verde", "azul, vermelha, verde, laranja e roxo", "Azul, verde, vermelha, amarela e marrom", "azul, verde, vermelha, laranja e marrom"], "resposta": "C"},
         {"texto": "Qual das alternativas abaixo é a cor da lixeira para reciclar madeira?", "opcoes": ["Branco", "Laranja", "Roxo", "Preto"], "resposta": "D"},
         {"texto": "O aterro sanitário é...", "opcoes": ["Um ponto de coleta especializado para equipamentos elétricos e eletrônicos obsoletos.", "Uma formação geológica costeira rochosa próxima à costa.", "Uma obra de engenharia projetada para a disposição final de resíduos sólidos urbanos.", "Um espaço público gratuito para receber materiais recicláveis e grandes resíduos."], "resposta": "C"},
-        {"texto": "O funcionamento do aterro sanitário segue um processo contínuo e técnico. Qual é a sequência correta?", "opcoes": ["Pesagem e Recebimento, Construção de Células, Compactação e Cobertura, Drenagem de Chorume, Monitoramento e Encerramento, Captura de Gases", "Construção de Células, Compactação e Cobertura, Pesagem e Recebimento, Monitoramento e Encerramento, Captura de Gases", "Pesagem e Recebimento, Construção de Células, Compactação e Cobertura, Drenagem de Chorume, Monitoramento e Encerramento, Captura de Gases", "Pesagem e Recebimento, Construção de Células, Compactação e Cobertura, Drenagem de Chorume, Monitoramento e Encerramento"], "resposta": "C"},
+        {"texto": "O funcionamento do aterro sanitário segue um processo contínuo e técnico. Qual é a sequência correta?", "opcoes": ["Pesagem e Recebimento, Compactação e Cobertura, Construção de Células, Drenagem de Chorume, Captura de Gases, Monitoramento e Encerramento", "Construção de Células, Compactação e Cobertura, Pesagem e Recebimento, Monitoramento e Encerramento, Captura de Gases", "Pesagem e Recebimento, Construção de Células, Compactação e Cobertura, Drenagem de Chorume, Monitoramento e Encerramento, Captura de Gases", "Pesagem e Recebimento, Construção de Células, Compactação e Cobertura, Drenagem de Chorume, Monitoramento e Encerramento"], "resposta": "C"},
         {"texto": "Quanto tempo dura um aterro sanitário?", "opcoes": ["10 anos", "15 anos", "27 anos", "5 anos"], "resposta": "A"},
         {"texto": "Qual gás é produzido em grande quantidade pela decomposição da matéria orgânica em aterros sanitários?", "opcoes": ["Oxigênio (O2)", "Hidrogênio (H2)", "Nitrogênio (N2)", "Metano (CH4)"], "resposta": "D"},
         {"texto": "Qual das alternativas apresenta uma medida que reduz a quantidade de resíduos destinados aos aterros sanitários?", "opcoes": ["Aumento do descarte de resíduos recicláveis no lixo comum.", "Incentivo à reciclagem e à compostagem.", "Construção de mais lixões.", "Queima de todo o lixo produzido."], "resposta": "B"},
@@ -823,6 +823,23 @@ def calcular_garantia(perguntas_respondidas):
     return 0
 
 
+def exibir_resumo_final(nome, serie, tema, perguntas_respondidas, premio_final, lifelines_usadas, resultado):
+    print("\n" + "=" * 40)
+    print("RESUMO DA PARTIDA")
+    print("=" * 40)
+    print(f"Jogador: {nome}")
+    print(f"Serie: {serie}")
+    print(f"Tema: {tema}")
+    print(f"Resultado: {resultado}")
+    print(f"Acertos: {perguntas_respondidas}/{len(PREMIOS)}")
+    print(f"Premio final: R$ {premio_final}")
+    print(
+        "Ajudas usadas:",
+        "Nenhuma" if not lifelines_usadas else ", ".join(lifelines_usadas),
+    )
+    print("=" * 40)
+
+
 def jogar():
     nome, idade, serie = solicitar_dados_jogador()
     tema, perguntas = selecionar_tema()
@@ -834,6 +851,8 @@ def jogar():
     }
     lifelines_usadas = []
     premio_atual = 0
+    premio_final = 0
+    resultado = "Jogo encerrado"
     pergunta_index = 0
     perguntas_respondidas = 0
     opcoes_visiveis = ["A", "B", "C", "D"]
@@ -871,6 +890,8 @@ def jogar():
             return
 
         if resposta == "S":
+            premio_final = premio_atual
+            resultado = "Saiu do jogo"
             print("Você saiu do jogo com R$", premio_atual)
             break
         if resposta == "L":
@@ -883,18 +904,19 @@ def jogar():
             if escolha not in lifelines:
                 print("Lifeline inválida. Tente novamente.")
                 continue
+            nova_posicao = pergunta_index
             if escolha == "1":
                 opcoes_visiveis = aplicar_5050(pergunta, opcoes_visiveis)
             elif escolha == "2":
                 aplicar_pedir_publico(pergunta)
             elif escolha == "3":
                 nova_posicao = aplicar_pular(pergunta_index, perguntas)
-                if nova_posicao != pergunta_index:
-                    pergunta_index = nova_posicao
-                    continue
             tocar_som("lifeline")
             lifelines_usadas.append(lifelines[escolha])
             del lifelines[escolha]
+            if nova_posicao != pergunta_index:
+                pergunta_index = nova_posicao
+                continue
             continue
         if resposta not in ["A", "B", "C", "D"]:
             print("Resposta inválida. Digite A, B, C, D, L ou S.")
@@ -906,6 +928,8 @@ def jogar():
             print("Resposta correta! Você ganhou R$", premio_atual)
             pergunta_index += 1
             if pergunta_index == len(perguntas):
+                premio_final = premio_atual
+                resultado = "Venceu o jogo"
                 tocar_som("win")
                 print("Parabéns! Você venceu o jogo e alcançou R$", premio_atual)
                 break
@@ -913,13 +937,22 @@ def jogar():
             tocar_som("wrong")
             tocar_som("game_over")
             garantia = calcular_garantia(perguntas_respondidas)
+            premio_final = garantia
+            resultado = "Game over"
             print("Resposta incorreta. GAME OVER.")
             print("Você deixa o jogo com R$", garantia)
             break
     if pergunta_index >= len(perguntas):
         print("Fim de jogo. Obrigado por jogar!")
-    print("Lifelines usados:",
-          "Nenhum" if not lifelines_usadas else ", ".join(lifelines_usadas))
+    exibir_resumo_final(
+        nome,
+        serie,
+        tema,
+        perguntas_respondidas,
+        premio_final,
+        lifelines_usadas,
+        resultado,
+    )
 
 
 def main():
