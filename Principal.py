@@ -4,6 +4,8 @@ import sys
 import math
 import array
 import time
+import json
+import os
 try:
     import pygame
 except ModuleNotFoundError:
@@ -13,6 +15,8 @@ except ModuleNotFoundError:
 AUDIO_INITIALIZED = False
 AUDIO_ENABLED = True
 SOUND_CACHE = {}
+ARQUIVO_RANKING = "ranking.json"
+LARGURA_TELA = 50
 
 
 def inicializar_audio():
@@ -121,60 +125,183 @@ def parar_suspense(channel):
         channel.stop()
 
 
+def exibir_linha():
+    print("=" * LARGURA_TELA)
+
+
+def exibir_cabecalho(titulo):
+    print()
+    exibir_linha()
+    print(titulo.center(LARGURA_TELA))
+    exibir_linha()
+
+
+def exibir_rodape():
+    exibir_linha()
+    print()
+
+
+def formatar_dinheiro(valor):
+    return f"R$ {valor:,.0f}".replace(",", ".")
+
+
+def caminho_ranking():
+    pasta_atual = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(pasta_atual, ARQUIVO_RANKING)
+
+
+def obter_inteiro(valor, padrao=0):
+    try:
+        return int(valor)
+    except (TypeError, ValueError):
+        return padrao
+
+
+def carregar_ranking():
+    caminho = caminho_ranking()
+    if not os.path.exists(caminho):
+        return []
+    try:
+        with open(caminho, "r", encoding="utf-8") as arquivo:
+            ranking = json.load(arquivo)
+        if isinstance(ranking, list):
+            return ranking
+    except (OSError, json.JSONDecodeError):
+        pass
+    return []
+
+
+def ordenar_ranking(ranking):
+    return sorted(
+        ranking,
+        key=lambda jogador: (
+            -obter_inteiro(jogador.get("premio", 0)),
+            -obter_inteiro(jogador.get("acertos", 0)),
+            str(jogador.get("nome", "")).lower(),
+        ),
+    )
+
+
+def salvar_ranking(ranking):
+    with open(caminho_ranking(), "w", encoding="utf-8") as arquivo:
+        json.dump(ordenar_ranking(ranking), arquivo, ensure_ascii=False, indent=4)
+
+
+def registrar_partida_ranking(nome, serie, tema, acertos, premio, resultado):
+    ranking = carregar_ranking()
+    ranking.append({
+        "nome": nome,
+        "serie": serie,
+        "tema": tema,
+        "acertos": acertos,
+        "premio": premio,
+        "resultado": resultado,
+    })
+    salvar_ranking(ranking)
+
+
 def exibir_menu_inicial():
-    print("\n" + "#" * 40)
-    print("#          SHOW DO MILHÃO          #")
-    print("#" * 40)
+    exibir_cabecalho("SHOW DO MILHÃO")
     print("1 - Jogar")
     print("2 - Instruções")
     print("3 - Ranking")
-    print("4 - Sair")
+    print("4 - Premiações e Garantias")
+    print("5 - Regras das Ajudas")
+    print("6 - Estatísticas do Jogo")
+    print("7 - Créditos")
+    print("8 - Sair")
     print()
     return input("Escolha uma opção: ").strip()
 
 
 def exibir_instrucoes():
-    print("\nINSTRUÇÕES")
+    exibir_cabecalho("INSTRUÇÕES")
     print("Ao iniciar, escolha um tema para jogar.")
     print("Responda as perguntas digitando A, B, C ou D.")
     print("Digite L durante uma pergunta para usar uma ajuda.")
     print("Digite S durante uma pergunta para sair do jogo.")
     print("As ajudas disponíveis são: 50-50, pedir ao público e pular pergunta.")
-    print("Quanto mais perguntas acertar, maior será o prêmio.\n")
+    print("Quanto mais perguntas acertar, maior será o prêmio.")
+    exibir_rodape()
 
 
 def exibir_ranking():
-    ranking = [
-        {
-            "nome": "Guilherme Arrais",
-            "idade": 16,
-            "serie": "2a",
-            "pontuacao": 850000,
-        },
-        {
-            "nome": "Pietro Martins",
-            "idade": 16,
-            "serie": "2a",
-            "pontuacao": 650000,
-        },
-    ]
+    ranking = ordenar_ranking(carregar_ranking())
 
-    print("\nRANKING")
-    print("-" * 40)
-    for posicao, jogador in enumerate(ranking, start=1):
+    exibir_cabecalho("RANKING")
+    if not ranking:
+        print("Nenhuma partida registrada ainda.")
+        exibir_rodape()
+        return
+
+    for posicao, jogador in enumerate(ranking[:10], start=1):
         print(
-            f"{posicao}. {jogador['nome']} - {jogador['idade']} anos - "
-            f"{jogador['serie']} - R$ {jogador['pontuacao']}"
+            f"{posicao:02d}. {jogador.get('nome', 'Jogador')} - "
+            f"{jogador.get('serie', 'Série não informada')} - "
+            f"{jogador.get('tema', 'Tema não informado')}"
         )
-    print("-" * 40)
-    print()
+        print(
+            f"    Acertos: {obter_inteiro(jogador.get('acertos', 0))}/{len(PREMIOS)} | "
+            f"Resultado: {jogador.get('resultado', 'Sem resultado')} | "
+            f"Prêmio: {formatar_dinheiro(obter_inteiro(jogador.get('premio', 0)))}"
+        )
+    exibir_rodape()
+
+
+def exibir_quadro_premiacoes():
+    exibir_cabecalho("PREMIAÇÕES E GARANTIAS")
+
+    for indice_bloco in range(5):
+        inicio = indice_bloco * 5
+        fim = inicio + 5
+        print(f"\nBloco {indice_bloco + 1}")
+        print("-" * LARGURA_TELA)
+        for nivel, premio in enumerate(PREMIOS[inicio:fim], start=inicio + 1):
+            print(f"Nível {nivel:02d} - {formatar_dinheiro(premio)}")
+
+    print("\nBloco Final")
+    print("-" * LARGURA_TELA)
+    nivel_final = len(PREMIOS)
+    premio_final = PREMIOS[-1]
+    print(f"Nível {nivel_final:02d} - {formatar_dinheiro(premio_final)}")
+
+    print("\nGarantias")
+    print("-" * LARGURA_TELA)
+    for acertos in [5, 10, 15, 20, 25]:
+        print(f"{acertos} acertos - {formatar_dinheiro(calcular_garantia(acertos))}")
+    exibir_rodape()
+
+
+def exibir_regras_ajudas():
+    exibir_cabecalho("REGRAS DAS AJUDAS")
+    print("50-50: remove duas alternativas incorretas.")
+    print("Pedir ao público: mostra uma estimativa de votos.")
+    print("Pular pergunta: avança para a próxima pergunta, exceto na última.")
+    exibir_rodape()
+
+
+def exibir_estatisticas_jogo():
+    exibir_cabecalho("ESTATÍSTICAS DO JOGO")
+    print("Total de temas: 8")
+    print(f"Total de perguntas por partida: {len(PREMIOS)}")
+    print(f"Prêmio máximo: {formatar_dinheiro(PREMIOS[-1])}")
+    print("Total de ajudas disponíveis: 3")
+    print("Total de blocos: 5 blocos + bloco final")
+    exibir_rodape()
+
+
+def exibir_creditos():
+    exibir_cabecalho("CRÉDITOS")
+    print("Criadores: Pietro Martins, Guilherme Arrais, Gustavo do Carmo,")
+    print("Luiz Gustavo, Arthur Lucas e Lucas Felix.")
+    print("Série: 2A Tec ADS")
+    print("Escola: E.E. Frederico De Barros Brotero")
+    exibir_rodape()
 
 
 def exibir_titulo(nome, serie, tema):
     tocar_som("start")
-    print("\n" + "#" * 40)
-    print("#    MILIONÁRIO - JOGO DE PERGUNTAS   #")
-    print("#" * 40)
+    exibir_cabecalho("MILIONÁRIO - JOGO DE PERGUNTAS")
     print(f"Tema: {tema}")
     print(
         f"Bem-vindo, {nome}, da {serie}! Responda as perguntas ou use uma ajuda quando precisar.")
@@ -455,7 +582,7 @@ def criar_perguntas_matematica():
         },
         {
             "texto": 'Se a > 0 em f(x) = ax + b, a função é:',
-            "opcoes": ['funcao crescente linear', 'decrescente', 'constante', 'quadratica'],
+            "opcoes": ['crescente linear', 'decrescente', 'constante', 'quadratica'],
             "resposta": 'A',
         },
         {
@@ -1450,20 +1577,18 @@ def calcular_garantia(perguntas_respondidas):
 
 
 def exibir_resumo_final(nome, serie, tema, perguntas_respondidas, premio_final, lifelines_usadas, resultado):
-    print("\n" + "=" * 40)
-    print("RESUMO DA PARTIDA")
-    print("=" * 40)
+    exibir_cabecalho("RESUMO DA PARTIDA")
     print(f"Jogador: {nome}")
     print(f"Série: {serie}")
     print(f"Tema: {tema}")
     print(f"Resultado: {resultado}")
     print(f"Acertos: {perguntas_respondidas}/{len(PREMIOS)}")
-    print(f"Prêmio final: R$ {premio_final}")
+    print(f"Prêmio final: {formatar_dinheiro(premio_final)}")
     print(
         "Ajudas usadas:",
         "Nenhuma" if not lifelines_usadas else ", ".join(lifelines_usadas),
     )
-    print("=" * 40)
+    exibir_rodape()
 
 
 def jogar():
@@ -1501,7 +1626,8 @@ def jogar():
                 total_no_bloco = 5
 
             print(
-                f"\n{bloco_texto}, Pergunta {pergunta_no_bloco}/{total_no_bloco} - Nível {pergunta_index + 1} - Prêmio: R$ {pergunta['premio']}")
+                f"\n{bloco_texto}, Pergunta {pergunta_no_bloco}/{total_no_bloco} - "
+                f"Nível {pergunta_index + 1} - Prêmio: {formatar_dinheiro(pergunta['premio'])}")
             exibir_pergunta(pergunta, opcoes_visiveis)
 
             suspense_channel = tocar_suspense()
@@ -1518,7 +1644,7 @@ def jogar():
         if resposta == "S":
             premio_final = premio_atual
             resultado = "Saiu do jogo"
-            print("Você saiu do jogo com R$", premio_atual)
+            print("Você saiu do jogo com", formatar_dinheiro(premio_atual))
             break
         if resposta == "L":
             if not lifelines:
@@ -1551,13 +1677,13 @@ def jogar():
             premio_atual = pergunta["premio"]
             perguntas_respondidas += 1
             tocar_som("correct")
-            print("Resposta correta! Você ganhou R$", premio_atual)
+            print("Resposta correta! Você ganhou", formatar_dinheiro(premio_atual))
             pergunta_index += 1
             if pergunta_index == len(perguntas):
                 premio_final = premio_atual
                 resultado = "Venceu o jogo"
                 tocar_som("win")
-                print("Parabéns! Você venceu o jogo e alcançou R$", premio_atual)
+                print("Parabéns! Você venceu o jogo e alcançou", formatar_dinheiro(premio_atual))
                 break
         else:
             tocar_som("wrong")
@@ -1566,7 +1692,7 @@ def jogar():
             premio_final = garantia
             resultado = "Game over"
             print("Resposta incorreta. GAME OVER.")
-            print("Você deixa o jogo com R$", garantia)
+            print("Você deixa o jogo com", formatar_dinheiro(garantia))
             break
     if pergunta_index >= len(perguntas):
         print("Fim de jogo. Obrigado por jogar!")
@@ -1577,6 +1703,14 @@ def jogar():
         perguntas_respondidas,
         premio_final,
         lifelines_usadas,
+        resultado,
+    )
+    registrar_partida_ranking(
+        nome,
+        serie,
+        tema,
+        perguntas_respondidas,
+        premio_final,
         resultado,
     )
 
@@ -1592,10 +1726,18 @@ def main():
             elif opcao == "3":
                 exibir_ranking()
             elif opcao == "4":
+                exibir_quadro_premiacoes()
+            elif opcao == "5":
+                exibir_regras_ajudas()
+            elif opcao == "6":
+                exibir_estatisticas_jogo()
+            elif opcao == "7":
+                exibir_creditos()
+            elif opcao == "8":
                 print("Até a próxima!")
                 break
             else:
-                print("Opção inválida. Digite 1, 2, 3 ou 4.")
+                print("Opção inválida. Digite 1, 2, 3, 4, 5, 6, 7 ou 8.")
     except (EOFError, KeyboardInterrupt):
         print("\nJogo encerrado.")
     finally:
